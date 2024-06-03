@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -10,7 +11,7 @@ namespace A_Star_Algorythm
 {
     internal class Program
     {
-        static int zeilen = 30;
+        static int zeilen = 50;
         static int spalten = zeilen * 2;
 
         static int start_x = 1;
@@ -29,9 +30,10 @@ namespace A_Star_Algorythm
         {
             // erstelung der Listen zum speichern der felder
             List<Feld> known      = new List<Feld>();
-            List<Feld> next_known = new List<Feld>();
+            List<Feld> goal       = new List<Feld>();
             List<Feld> completed  = new List<Feld>();
-            List<Feld> neighbors = new List<Feld>();
+            List<Feld> neighbors  = new List<Feld>();
+            List<Feld> pathToGoal = new List<Feld>();
 
             // das Spielfeld zum Start nur einmal komplett erzeugen!!
 
@@ -53,27 +55,29 @@ namespace A_Star_Algorythm
             // erstellung des startfeldes sowie speicherung in liste known
             Feld start_feld = new Feld();
             start_feld.setPos(start[0], start[1]);
-            start_feld.setH(ziel);
-            start_feld.setG(0);
-            start_feld.setF();
+            start_feld.setCostToDestination(ziel);
+            start_feld.setCostUntilNow(0);
+            start_feld.setTotalCost();
             known.Add(start_feld);
 
-            while (true)
+            bool running = true;
+
+            while (running)
             {
                 zeigeSpielfeld();
 
                 // zählt die liste auf inhalte wenn mehr als einer vorhanden wird die liste entfernung zum zielpunkt sortiert
                 if(known.Count() >= 2)
                 {
-                    known.Sort(delegate (Feld x, Feld y)
+                    known.Sort(delegate (Feld first_field, Feld second_field)
                     {
-                        return x.getF().CompareTo(y.getF());
+                        return first_field.getTotalCost().CompareTo(second_field.getTotalCost());
                     });
                 }
                 // entnimmt den ersten punkt aus der liste und erstellt ein objekt und entfernt es anschließend aus der liste
                 Feld tmp_feld = known[0];
                 known.RemoveAt(0);
-
+                
 
                 // befüllen der liste neighbors mit den nachbarn des aktuell untersuchten feldes
                 neighbors = checkNeighbors(tmp_feld);
@@ -85,10 +89,10 @@ namespace A_Star_Algorythm
                 for (int i = 0; i < count; i++)
                 {
                     // prüft ob sich ein nachbar bereits in der completed liste befindet
-                    foreach (Feld y in completed)
+                    foreach (Feld completed_field in completed)
                     {
                         // wenn ja werden sie weiter untern entfernt
-                        if (neighbors[i].getPos_x() == y.getPos_x() && neighbors[i].getPos_y() == y.getPos_y())
+                        if (neighbors[i].getPos_x() == completed_field.getPos_x() && neighbors[i].getPos_y() == completed_field.getPos_y())
                         {
                             is_existing = true;
                             break;
@@ -105,34 +109,31 @@ namespace A_Star_Algorythm
                 is_existing = false;
                 count = 0;
                 // hier wird geprüft ob sich die nachbarn bereits in der bekannten liste befinden
-                foreach (Feld x in neighbors) 
+                foreach (Feld neighbor in neighbors) 
                 {
                     int counter = 0;
-                    foreach (Feld y in known)
+                    foreach (Feld known_field in known)
                     {
                         // wenn sie sich bereits in der bekannten liste befinden wird der g (kosten von start zum aktuellen knoten) wert überprüft 
-                        if(x.getPos_x() == y.getPos_x() && x.getPos_y() == y.getPos_y())
+                        if(neighbor.getPos_x() == known_field.getPos_x() && neighbor.getPos_y() == known_field.getPos_y())
                         {
                             is_existing = true;
-                            /*if(x.f < y.f)
+                            if(neighbor.getCostUntilNow() < known_field.getCostUntilNow())
                             {
-                                known[counter].f = x.f; 
+                                known[counter].setCostUntilNow(neighbor.getCostUntilNow()); 
                                 
-                            }*/
+                            }
+                            break;
                         }
                         counter++;
-                    }
-                    // und wenn er noch nicht existiert wird er in die bekannten liste aufgenommen
-                    if (!is_existing)
-                    {
-                        known.Add((Feld)x);
                         is_existing = false;
                     }
-                }
-
-                if(tmp_feld.getPos_x() == ziel[0] && tmp_feld.getPos_y() == ziel[1])
-                {
-                    break;
+                    // und wenn er noch nicht existiert wird er in die bekannten liste aufgenommen
+                    if (is_existing == false)
+                    {
+                        known.Add((Feld)neighbor);
+                        is_existing = false;
+                    }
                 }
 
                 completed.Add(tmp_feld);
@@ -154,16 +155,41 @@ namespace A_Star_Algorythm
                         spielfeld[feld.getPos_x(), feld.getPos_y()] = 'o';
                     }
                 }
+                if (pathToGoal.Count() >= 1)
+                {
+                    running = false;
+                }
+
+                if (tmp_feld.getPos_x() == ziel[0] && tmp_feld.getPos_y() == ziel[1])
+                {
+                    pathToGoal = showShortestPathField(tmp_feld, completed);
+                    foreach (Feld path_field in pathToGoal)
+                    {
+                        if (path_field.getPos_x() != null && path_field.getPos_y() != null)
+                        {
+                            spielfeld[path_field.getPos_x(), path_field.getPos_y()] = 'X';
+                        }
+
+                    }
+                    if (spielfeld[pathToGoal.Last().getPos_x(), pathToGoal.Last().getPos_y()] == 'X')
+                    {
+                        //running = false;
+                    }
+                }
+
+                
 
                 Console.Write(output);
                 Console.WriteLine();
                 Console.WriteLine(tmp_feld.getPos_x());
                 Console.WriteLine(tmp_feld.getPos_y());
-                Console.WriteLine(tmp_feld.getF());
+                Console.WriteLine(tmp_feld.getTotalCost());
+
+                
 
                 count++;
 
-                Thread.Sleep(150);
+                Thread.Sleep(1);
             }
             Console.ReadKey();
         }
@@ -233,9 +259,9 @@ namespace A_Star_Algorythm
                             {
                                 Feld tmp_feld = new Feld();
                                 tmp_feld.setPos(pos_x, pos_y);
-                                tmp_feld.setG(in_feld);
-                                tmp_feld.setH(ziel);
-                                tmp_feld.setF();
+                                tmp_feld.setCostUntilNow(in_feld);
+                                tmp_feld.setCostToDestination(ziel);
+                                tmp_feld.setTotalCost();
                                 neighbors.Add(tmp_feld);
                             }
                         }
@@ -246,6 +272,26 @@ namespace A_Star_Algorythm
             return neighbors;
         }
 
+        static List<Feld> showShortestPathField(Feld in_field, List<Feld> in_list)
+        {
+            List<Feld> path_to_goal = new List<Feld>();
+            Feld tmp_field = in_field;
+            while (true) 
+            {
+                
+                if (tmp_field != null) 
+                {
+                    path_to_goal.Add(tmp_field);
+                    tmp_field = tmp_field.getPredecessor();
+                    
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return path_to_goal;
+        }
 
         static void zeigeSpielfeld()
         {
