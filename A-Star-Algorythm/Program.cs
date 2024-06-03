@@ -11,23 +11,25 @@ namespace A_Star_Algorythm
 {
     internal class Program
     {
-        static int zeilen = 50;
-        static int spalten = zeilen * 2;
+        static int row    = 50;
+        static int column = row * 2;
 
-        static int start_x = 1;
-        static int start_y = zeilen - 2;
-        static int ziel_x = spalten - 2;
-        static int ziel_y = 1;
-        static int[] start = { start_x, start_y };
-        static int[] ziel = { ziel_x, ziel_y };
+        static int start_x   = 1;
+        static int start_y   = row - 2;
+        static int finish_x  = column - 2;
+        static int finish_y  = 1;
+        static int[] start   = { start_x   , start_y };
+        static int[] finish  = { finish_x  , finish_y };
 
         static int count = 0;
 
-        static char[,] spielfeld = new char[spalten, zeilen];
+        static char[,] coordinate_field = new char[column, row];
 
         static string output = "";
         static void Main(string[] args)
         {
+            int sleep = 1;
+
             // erstelung der Listen zum speichern der felder
             List<Feld> known      = new List<Feld>();
             List<Feld> goal       = new List<Feld>();
@@ -41,9 +43,6 @@ namespace A_Star_Algorythm
 
             /////////////////////////////////////////////////////////
 
-            // zufällig Sterne auf Spielfeld verteilen
-
-
             setzeStartUndZiel();
             genBlockade();
 
@@ -53,15 +52,14 @@ namespace A_Star_Algorythm
             Console.CursorVisible = false;
 
             // erstellung des startfeldes sowie speicherung in liste known
-            Feld start_feld = new Feld();
-            start_feld.setPos(start[0], start[1]);
-            start_feld.setCostToDestination(ziel);
-            start_feld.setCostUntilNow(0);
-            start_feld.setTotalCost();
-            known.Add(start_feld);
+            Feld start_field = new Feld();
+            start_field.setPos(start[0], start[1]);
+            start_field.setCostToDestination(finish);
+            start_field.setCostUntilNow(0);
+            start_field.setTotalCost();
+            known.Add(start_field);
 
             bool running = true;
-
             while (running)
             {
                 zeigeSpielfeld();
@@ -75,12 +73,12 @@ namespace A_Star_Algorythm
                     });
                 }
                 // entnimmt den ersten punkt aus der liste und erstellt ein objekt und entfernt es anschließend aus der liste
-                Feld tmp_feld = known[0];
+                Feld tmp_field = known[0];
                 known.RemoveAt(0);
                 
 
                 // befüllen der liste neighbors mit den nachbarn des aktuell untersuchten feldes
-                neighbors = checkNeighbors(tmp_feld);
+                neighbors = checkNeighbors(tmp_field);
                 List<int> toRemove = new List<int>();
                 // überprüfen ob die nachbarn bereits in einer der beiden listen known oder completed vorhanden sind
                 bool is_existing = false;
@@ -122,7 +120,7 @@ namespace A_Star_Algorythm
                             // der wert in der known liste überschrieben
                             if(neighbor.getCostUntilNow() < known_field.getCostUntilNow())
                             {
-                                known[counter].setCostUntilNow(neighbor.getCostUntilNow()); 
+                                known[counter].setCostUntilNow(neighbor); 
                             }
                             break;
                         }
@@ -137,26 +135,7 @@ namespace A_Star_Algorythm
                     }
                 }
                 // das aktuelle feld wird zur completed liste hinzugefügt
-                completed.Add(tmp_feld);
-
-                // zur ausgabe der completed liste in der komandozeile
-                foreach(Feld feld in completed)
-                {
-                   
-                    if(spielfeld[feld.getPos_x(), feld.getPos_y()] != 'X')
-                    {
-                        spielfeld[feld.getPos_x(), feld.getPos_y()] = '+';
-                    } 
-                }
-
-                // zur ausgabe der bekannten felder in der komandozeile
-                foreach (Feld feld in known)
-                {
-                    if (spielfeld[feld.getPos_x(), feld.getPos_y()] != 'X')
-                    {
-                        spielfeld[feld.getPos_x(), feld.getPos_y()] = 'o';
-                    }
-                }
+                completed.Add(tmp_field);
 
                 // wenn die liste pathToGoal gefüllt ist wird das programm beendet
                 if (pathToGoal.Count() >= 1)
@@ -164,31 +143,50 @@ namespace A_Star_Algorythm
                     running = false;
                 }
 
-                // wenn das ziel erreicht wurde wird die liste pathtogoal gefüllt
-                if (tmp_feld.getPos_x() == ziel[0] && tmp_feld.getPos_y() == ziel[1])
+                // zur ausgabe der completed liste in der komandozeile
+                foreach (Feld completed_field in completed)
                 {
-                    pathToGoal = showShortestPathField(tmp_feld, completed);
-                    foreach (Feld path_field in pathToGoal)
+                   
+                    if(coordinate_field[completed_field.getPos_x(), completed_field.getPos_y()] != 'X')
                     {
-                        if (path_field.getPos_x() != null && path_field.getPos_y() != null)
-                        {
-                            spielfeld[path_field.getPos_x(), path_field.getPos_y()] = 'X';
-                        }
+                        coordinate_field[completed_field.getPos_x(), completed_field.getPos_y()] = '+';
+                    } 
+                }
 
+                // zur ausgabe der bekannten felder in der komandozeile
+                foreach (Feld known_field in known)
+                {
+                    if (coordinate_field[known_field.getPos_x(), known_field.getPos_y()] != 'X')
+                    {
+                        coordinate_field[known_field.getPos_x(), known_field.getPos_y()] = 'o';
                     }
                 }
 
                 
 
+                // wenn das ziel erreicht wurde wird die liste pathtogoal gefüllt
+                if (tmp_field.getPos_x() == finish[0] && tmp_field.getPos_y() == finish[1])
+                {
+                    pathToGoal = showShortestPathField(tmp_field, completed);
+                    foreach (Feld path_field in pathToGoal)
+                    {
+                        if (path_field.getPos_x() != null && path_field.getPos_y() != null)
+                        {
+                            coordinate_field[path_field.getPos_x(), path_field.getPos_y()] = 'X';
+                        }
+
+                    }
+                }
+
                 Console.Write(output);  // ausgabe in der Komandozeile
                 Console.WriteLine();
-                Console.WriteLine(tmp_feld.getPos_x()); // ausgabe der x koordinate des aktuellen feldes
-                Console.WriteLine(tmp_feld.getPos_y()); // ausgabe der y koordinate des aktuellen feldes
-                Console.WriteLine(tmp_feld.getTotalCost()); // ausgabe der kompletten kosten des aktuellen feldes
+                Console.WriteLine(tmp_field.getPos_x()); // ausgabe der x koordinate des aktuellen feldes
+                Console.WriteLine(tmp_field.getPos_y()); // ausgabe der y koordinate des aktuellen feldes
+                Console.WriteLine(tmp_field.getTotalCost()); // ausgabe der kompletten kosten des aktuellen feldes
 
                 count++;
 
-                Thread.Sleep(1);
+                Thread.Sleep(sleep);
             }
             Console.ReadKey();
         }
@@ -196,24 +194,24 @@ namespace A_Star_Algorythm
         // erzeugt ein startfeld und speichert es in einem array
         static void erzeugeStartfeld()
         {
-            for (int y = 0; y < zeilen; y++)
+            for (int y = 0; y < row; y++)
             {
-                for (int x = 0; x < spalten; x++)
+                for (int x = 0; x < column; x++)
                 {
                     // wenn wir in der ERSTEN oder in der LETZTEN Zeile sind >> alle Rauten machen
-                    if (x == 0 || x == spalten - 1)
+                    if (x == 0 || x == column - 1)
                     {
-                        spielfeld[x, y] = '#';
+                        coordinate_field[x, y] = '#';
                     }
                     // wenn wir ZWISCHEN der ERSTEN und der LETZTEN Zeile sind >> erste und letzte Spalte eine Raute
-                    else if (y == 0 || y == zeilen -1)
+                    else if (y == 0 || y == row -1)
                     {
-                        spielfeld[x, y] = '#';
+                        coordinate_field[x, y] = '#';
                     }
                     // in ALLEN anderen fällen >> ein Leerzeichen
                     else
                     {
-                        spielfeld[x, y] = ' ';
+                        coordinate_field[x, y] = ' ';
                     }
                 }
             }
@@ -223,8 +221,8 @@ namespace A_Star_Algorythm
         // bringt den start und den zielpunkt aufs feld
         static void setzeStartUndZiel()
         {
-            spielfeld[start[0], start[1]] = 'X';
-            spielfeld[ziel[0], ziel[1]] = 'O';
+            coordinate_field[start[0], start[1]] = 'X';
+            coordinate_field[finish[0], finish[1]] = 'O';
         }
 
         // speichert die blockade im spielfeld array
@@ -232,11 +230,20 @@ namespace A_Star_Algorythm
         {
             for (int i = 1; i <= 6; i++)
             {
-                int x = ziel[0] - i;
-                spielfeld[x, 2] = '#';
+                int x = finish[0] - i;
+                coordinate_field[x, 2] = '#';
             }
-            spielfeld[ziel_x - 1, 3] = '#';
-            spielfeld[ziel_x - 1, 4] = '#';
+            coordinate_field[finish[0] - 1, 3] = '#';
+            coordinate_field[finish[0] - 1, 4] = '#';
+
+
+            for (int i = 1; i < 50; i++)
+            {
+                int x = 70 - i;
+                coordinate_field[x, 15] = '#';
+            }
+            coordinate_field[50 - 1, 16] = '#';
+            coordinate_field[50 - 1, 17] = '#';
         }
 
         // sucht die nachbarn des aktuellen feldes und gibt diese als liste zurück
@@ -251,19 +258,19 @@ namespace A_Star_Algorythm
                     if(x != 0 && y == 0 || x == 0 && y != 0 || x != 0 && y != 0)
                     {
                         // hier werden felder ausgeschlossen die auf dem spielfeld eine # sind
-                        if (spielfeld[in_feld.getPos_x() + x, in_feld.getPos_y() + y] != '#')
+                        if (coordinate_field[in_feld.getPos_x() + x, in_feld.getPos_y() + y] != '#')
                         {
                             // zusammenrechnen der position des feldes worauf man sich befindet und der for schleifen werte -1 bis +1 auf der x und y achse zur ermittlung der nachbarn
                             int pos_x = in_feld.getPos_x() + x;
                             int pos_y = in_feld.getPos_y() + y;
                             // ausschließen des randes des arrays
-                            if (pos_x > 0 && pos_y > 0 && pos_x < spalten - 1 && pos_y < zeilen - 1)
+                            if (pos_x > 0 && pos_y > 0 && pos_x < column - 1 && pos_y < row - 1)
                             {
                                 // erstellen der neuen felder und speichern in der liste
                                 Feld tmp_feld = new Feld();
                                 tmp_feld.setPos(pos_x, pos_y);
                                 tmp_feld.setCostUntilNow(in_feld);
-                                tmp_feld.setCostToDestination(ziel);
+                                tmp_feld.setCostToDestination(finish);
                                 tmp_feld.setTotalCost();
                                 neighbors.Add(tmp_feld);
                             }
@@ -305,11 +312,11 @@ namespace A_Star_Algorythm
             output = "";
 
             // Ausgabe des Spielfelds was im Array gespeichert ist
-            for (int y = 0; y < zeilen; y++)
+            for (int y = 0; y < row; y++)
             {
-                for (int x = 0; x < spalten; x++)
+                for (int x = 0; x < column; x++)
                 {
-                    output = output + spielfeld[x, y];
+                    output = output + coordinate_field[x, y];
                 }
                 output += "\n";
             }
